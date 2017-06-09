@@ -2,9 +2,13 @@ package com.parse;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -26,10 +30,27 @@ public class HTMLParser {
 
 	public static void main(String[] args) throws IOException,
 			InterruptedException {
-		String htmlPath = args[0];
+		String htmlPath="";
+		if(args.length > 0){
+		htmlPath = args[0];
 		if (htmlPath == null || "".equals(htmlPath.trim())) {
-			htmlPath = "C:\\watcher\\";
+			htmlPath = "C:\\awr\\watcher\\";
 		}
+		}else{
+			htmlPath = "C:\\awr\\watcher\\";
+		}
+		
+		String htmlArchive="C:\\awr\\AWRDataProgramFiles\\htmlArchive\\";
+		System.out.println("args.length================"+args.length);
+		if(args.length > 2){
+			htmlArchive=args[2];
+			if (htmlArchive == null || "".equals(htmlArchive.trim())) {
+				htmlArchive="C:\\awr\\AWRDataProgramFiles\\htmlArchive\\";
+			}
+		}else{
+			htmlArchive="C:\\awr\\AWRDataProgramFiles\\htmlArchive\\";
+		}
+		
 		Path faxFolder = Paths.get(htmlPath);
 		WatchService watchService = FileSystems.getDefault().newWatchService();
 		faxFolder.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
@@ -46,10 +67,9 @@ public class HTMLParser {
 						String fileName = event.context().toString();
 						System.out.println("File inserted:" + fileName);
 						htmlFullPath = htmlPath + fileName;
-						System.out
-								.println("htmlFullPath=============================="
-										+ htmlFullPath);
+						String htmlArchiveFullPath=htmlArchive+fileName;
 						File htmlf = new File(htmlFullPath);
+						
 						boolean isHtmlExist = true;
 						if (!htmlf.exists()) {
 							isHtmlExist = false;
@@ -57,6 +77,12 @@ public class HTMLParser {
 									.println("Html file not found on given location");
 						}
 						if (isHtmlExist) {
+							try {
+								copyFileUsingStream(htmlf,new File(htmlArchiveFullPath));
+							} catch (Exception e) {
+								e.getMessage();// TODO: handle exception
+							}
+							Thread.sleep(50);
 							String content = "";
 							try {
 
@@ -74,18 +100,20 @@ public class HTMLParser {
 
 							}
 							try {
-								System.out.println("content================="+content);
 								Document doc = Jsoup.parse(content);
 								Elements tables = doc.select("table");
 								if (tables != null) {
-									
-									loadProfile(tables, args[1]);
-									loadTableSpaceIostats(tables, args[1]);
-									loadTop5timedEvents(tables, args[1]);
+									String outputPath="C:\\awr\\AWRDataOutputFiles\\";
+									if(args.length > 1){
+										outputPath=args[1];
+									}
+									loadProfile(tables, outputPath);
+									loadTableSpaceIostats(tables, outputPath);
+									loadTop5timedEvents(tables, outputPath);
 									Thread.sleep(50);
 									if (htmlf.delete()) {
 										System.out
-												.println("File data inserted>>>>>>>>>>>>>>>>>>>>>>>");
+												.println("File data inserted in csv>>>>>>>>>>>>>>>>>>>>>>>");
 									}
 								}
 
@@ -102,6 +130,23 @@ public class HTMLParser {
 			}
 		} while (valid);
 
+	}
+	
+	private static void copyFileUsingStream(File source, File dest) throws IOException {
+	    InputStream is = null;
+	    OutputStream os = null;
+	    try {
+	        is = new FileInputStream(source);
+	        os = new FileOutputStream(dest);
+	        byte[] buffer = new byte[1024];
+	        int length;
+	        while ((length = is.read(buffer)) > 0) {
+	            os.write(buffer, 0, length);
+	        }
+	    } finally {
+	        is.close();
+	        os.close();
+	    }
 	}
 
 	private static Map<Integer, String> getLoadProfileHeaderData() {
