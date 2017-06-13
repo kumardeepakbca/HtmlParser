@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -28,29 +29,52 @@ import org.jsoup.select.Elements;
 
 public class HTMLParser {
 
-	public static void main(String[] args) throws IOException,
-			InterruptedException {
+	public static void main(String[] args) throws Exception {
 		String htmlPath="";
+		String htmlArchive="";
+		String outputPath="";
+		String propertiesFilePath="";
+		String htArchFileCreated="";
+		Long hafcb=0l;
+		File directory=null;
 		if(args.length > 0){
-		htmlPath = args[0];
-		if (htmlPath == null || "".equals(htmlPath.trim())) {
-			htmlPath = "C:\\awr\\watcher\\";
-		}
-		}else{
-			htmlPath = "C:\\awr\\watcher\\";
-		}
-		
-		String htmlArchive="C:\\awr\\AWRDataProgramFiles\\htmlArchive\\";
-		System.out.println("args.length================"+args.length);
-		if(args.length > 2){
-			htmlArchive=args[2];
-			if (htmlArchive == null || "".equals(htmlArchive.trim())) {
-				htmlArchive="C:\\awr\\AWRDataProgramFiles\\htmlArchive\\";
+			
+			propertiesFilePath=args[0];
+			System.out.println("propertiesFilePath :- " + propertiesFilePath);
+			Properties properties = new Properties();
+			properties.load(new FileInputStream(propertiesFilePath));
+			htmlPath=properties.getProperty("html.file.watcher.path");
+			htmlArchive=properties.getProperty("html.file.archive.path");
+			directory = new File(String.valueOf(htmlArchive));
+			if(!directory.exists()){
+				directory.mkdirs();
+			} 
+			outputPath=properties.getProperty("output.path");
+			htArchFileCreated=properties.getProperty("html.archived.file.deleted.days");
+			if(htArchFileCreated != null){
+				hafcb=Long.parseLong(htArchFileCreated);
 			}
-		}else{
-			htmlArchive="C:\\awr\\AWRDataProgramFiles\\htmlArchive\\";
-		}
+			
+			System.out.println("File watcher path :- "+htmlPath);
+			System.out.println("Html archive path :- "+htmlArchive);
+			System.out.println("Report output path :- "+outputPath);
 		
+		}else{
+			throw new Exception("Config file location not found"); 
+		}
+		/* This will read existion file from watcher folder and write data into csv file */
+		File folder = new File(htmlPath);
+		File[] listOfFiles = folder.listFiles();
+			for (int i = 0; i < listOfFiles.length; i++) {
+		      if (listOfFiles[i].isFile()) {
+		    	  	String fileName=listOfFiles[i].getName();
+		    	  	String htmlFullPath = htmlPath + fileName;
+		    	  	String htmlArchiveFullPath=htmlArchive+fileName;
+		    		loadDataHtmlToCsv(htmlFullPath,htmlArchiveFullPath,outputPath);
+		      }
+		    }
+		deleteArchiveFile(hafcb.longValue(),htmlArchive);	
+		/* End */
 		Path faxFolder = Paths.get(htmlPath);
 		WatchService watchService = FileSystems.getDefault().newWatchService();
 		faxFolder.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
@@ -58,71 +82,18 @@ public class HTMLParser {
 		String htmlFullPath = "";
 		do {
 			WatchKey watchKey = watchService.take();
-
 			for (WatchEvent event : watchKey.pollEvents()) {
 				WatchEvent.Kind kind = event.kind();
 				if (StandardWatchEventKinds.ENTRY_CREATE.equals(event.kind())) {
 					synchronized (HTMLParser.class) {
-
+						if(!directory.exists()){
+							directory.mkdirs();
+						} 
 						String fileName = event.context().toString();
-						System.out.println("File inserted:" + fileName);
 						htmlFullPath = htmlPath + fileName;
 						String htmlArchiveFullPath=htmlArchive+fileName;
-						File htmlf = new File(htmlFullPath);
-						
-						boolean isHtmlExist = true;
-						if (!htmlf.exists()) {
-							isHtmlExist = false;
-							System.out
-									.println("Html file not found on given location");
-						}
-						if (isHtmlExist) {
-							try {
-								copyFileUsingStream(htmlf,new File(htmlArchiveFullPath));
-							} catch (Exception e) {
-								e.getMessage();// TODO: handle exception
-							}
-							Thread.sleep(50);
-							String content = "";
-							try {
-
-								BufferedReader in = new BufferedReader(
-										new FileReader(htmlFullPath));
-								String str;
-
-								while ((str = in.readLine()) != null) {
-									content += str;
-								}
-
-								in.close();
-
-							} catch (IOException e) {
-
-							}
-							try {
-								Document doc = Jsoup.parse(content);
-								Elements tables = doc.select("table");
-								if (tables != null) {
-									String outputPath="C:\\awr\\AWRDataOutputFiles\\";
-									if(args.length > 1){
-										outputPath=args[1];
-									}
-									loadProfile(tables, outputPath);
-									loadTableSpaceIostats(tables, outputPath);
-									loadTop5timedEvents(tables, outputPath);
-									Thread.sleep(50);
-									if (htmlf.delete()) {
-										System.out
-												.println("File data inserted in csv>>>>>>>>>>>>>>>>>>>>>>>");
-									}
-								}
-
-							} catch (Exception e) {
-								System.out.println(e.getMessage());
-								e.printStackTrace();
-
-							}
-						}
+						loadDataHtmlToCsv(htmlFullPath,htmlArchiveFullPath,outputPath);
+						deleteArchiveFile(hafcb.longValue(),htmlArchive);
 					}
 
 				}
@@ -143,7 +114,10 @@ public class HTMLParser {
 	        while ((length = is.read(buffer)) > 0) {
 	            os.write(buffer, 0, length);
 	        }
-	    } finally {
+	    }catch(Exception e){
+	    	e.printStackTrace();
+	    }
+	    finally {
 	        is.close();
 	        os.close();
 	    }
@@ -3861,4 +3835,83 @@ public class HTMLParser {
 		csvData.put(295, "TEST_TS Buffer Waits ");
 		return csvData;
 	}
+	
+	public static void loadDataHtmlToCsv(String htmlFullPath, String htmlArchiveFullPath,String outputPath){
+		
+		File htmlf = new File(htmlFullPath);
+		boolean isHtmlExist = true;
+		if (!htmlf.exists()) {
+			isHtmlExist = false;
+			System.out
+					.println("Html file not found on given location");
+		}
+		if (isHtmlExist) {
+			try {
+				copyFileUsingStream(htmlf,new File(String.valueOf(htmlArchiveFullPath)));
+			} catch (Exception e) {
+				e.getMessage();// TODO: handle exception
+			}
+			
+			String content = "";
+			try {
+
+				BufferedReader in = new BufferedReader(
+						new FileReader(htmlFullPath));
+				String str;
+
+				while ((str = in.readLine()) != null) {
+					content += str;
+				}
+
+				in.close();
+
+			} catch (IOException e) {
+
+			}
+			try {
+				Document doc = Jsoup.parse(content);
+				Elements tables = doc.select("table");
+				if (tables != null) {
+					loadProfile(tables, outputPath);
+					loadTableSpaceIostats(tables, outputPath);
+					loadTop5timedEvents(tables, outputPath);
+					Thread.sleep(50);
+					if (htmlf.delete()) {
+						System.out
+								.println("File data inserted in csv>>>>>>>>>>>>>>>>>>>>>>>");
+					}
+				}
+
+			} catch (Exception e) {
+				System.out.println(e.getMessage());
+				e.printStackTrace();
+
+			}
+		}
+	}
+	
+    public static  void deleteArchiveFile(long days,String dirPath ) {
+    	System.out.println("days:-"+days+"  dirPath:-"+dirPath);
+        File folder = new File(dirPath);
+ 
+        if (folder.exists()) {
+ 
+            File[] listFiles = folder.listFiles();
+ 
+            long eligibleForDeletion = System.currentTimeMillis() -
+                (days * 24 * 60 * 60 * 1000L);
+ 
+            for (File listFile: listFiles) {
+ 
+                if (listFile.lastModified() < eligibleForDeletion) {
+ 
+                    if (!listFile.delete()) {
+ 
+                        System.out.println("Sorry Unable to Delete Files.."+listFile.getName());
+ 
+                    }
+                }
+            }
+        }
+    } 
 }
