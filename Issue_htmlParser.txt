@@ -5,11 +5,11 @@ htmk parser changes
 These  are the expectations    after  testing  HTML parser  project  ( 10 days + testing)
 
 
-1)  Program should  read all html files in  watcher and also  it has to read as and upon the new files are adding to  the Watcher or input directory.
-2)  Fixing the duplicates  to top5timed_events.csv  file, in similar has to check with other  csv files as well.(  as each one writing duplicates for CSV files)
-3)  Connecting to  outlook server  and  able to down load html files into  the watcher/html input directory, and  rest  have to execute as anticipated  with above fixes.
-4) below is nice to have. I think I could put some macro in the outlook to automatically download the files in 'watcher'.
-5) It should look for htmlarchive, and if not there, should create it automatically the first time.
-6) Add a htmlarchive cleaning function e.g. delete files from htmlarchive which are more than 7 days old ( number of days should be configurable and you could pass it as an argument with default 7 days)
-7) Remove dependency on C:// directory. Say that the script should run from inside any directory java  -jar htmlParser.jar "..\\awr\\watcher\\" "..\\awr\\AWRDataOutputFiles\\" "..\\awr\\AWRDataProgramFiles\\htmlArchive\\"
+1)  Program should  read all html files in  watcher and also  it has to read as and upon the new files are adding to  the Watcher or input directory.(Done)
+2)  Fixing the duplicates  to top5timed_events.csv  file, in similar has to check with other  csv files as well.(  as each one writing duplicates for CSV files)(Open)
+3)  Connecting to  outlook server  and  able to down load html files into  the watcher/html input directory, and  rest  have to execute as anticipated  with above fixes.(open)
+4) below is nice to have. I think I could put some macro in the outlook to automatically download the files in 'watcher'.(Open)
+5) It should look for htmlarchive, and if not there, should create it automatically the first time.(Done)
+6) Add a htmlarchive cleaning function e.g. delete files from htmlarchive which are more than 7 days old ( number of days should be configurable and you could pass it as an argument with default 7 days)(Done)
+7) Remove dependency on C:// directory. Say that the script should run from inside any directory java  -jar htmlParser.jar "..\\awr\\watcher\\" "..\\awr\\AWRDataOutputFiles\\" "..\\awr\\AWRDataProgramFiles\\htmlArchive\\" (Done)
 pls read all changes & let me know if you have any query
