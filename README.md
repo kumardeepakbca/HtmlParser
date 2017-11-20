@@ -21,7 +21,7 @@ Add following details in Config.properties file:
 
 How to run jar file?
 	java -jar <Jar file> <config.properties path>
-	Ex: java -jar htmlParser.jar C:\html-parser\config.properties
+	Ex: java -jar htmlParser.jar C:\html-parser\config.properties test.............
 
 
 
